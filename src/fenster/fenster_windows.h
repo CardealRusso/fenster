@@ -61,14 +61,14 @@ static LRESULT CALLBACK fenster_wndproc(HWND hwnd, UINT msg, WPARAM wParam,
     }
     break;
   case WM_MOUSEMOVE:
-    f->y = HIWORD(lParam), f->x = LOWORD(lParam);
+    f->mpos[1] = HIWORD(lParam), f->mpos[0] = LOWORD(lParam);
     break;
   case WM_KEYDOWN:
   case WM_KEYUP: {
-    f->mod = ((GetKeyState(VK_CONTROL) & 0x8000) >> 15) |
-             ((GetKeyState(VK_SHIFT) & 0x8000) >> 14) |
-             ((GetKeyState(VK_MENU) & 0x8000) >> 13) |
-             (((GetKeyState(VK_LWIN) | GetKeyState(VK_RWIN)) & 0x8000) >> 12);
+    f->modkeys[0] = (GetKeyState(VK_CONTROL) & 0x8000) ? 1 : 0;
+    f->modkeys[1] = (GetKeyState(VK_SHIFT) & 0x8000) ? 1 : 0;
+    f->modkeys[2] = (GetKeyState(VK_MENU) & 0x8000) ? 1 : 0;
+    f->modkeys[3] = ((GetKeyState(VK_LWIN) | GetKeyState(VK_RWIN)) & 0x8000) ? 1 : 0;
     f->keys[FENSTER_KEYCODES[HIWORD(lParam) & 0x1ff]] = !((lParam >> 31) & 1);
   } break;
   case WM_DESTROY:
@@ -125,4 +125,13 @@ FENSTER_API int64_t fenster_time() {
   return (int64_t)(count.QuadPart * 1000.0 / freq.QuadPart);
 }
 
+FENSTER_API void fenster_sync(struct fenster *f, int fps) {
+  int64_t frame_time = 1000 / fps;
+  int64_t elapsed = fenster_time() - f->lastsync;
+  if (elapsed < frame_time) {
+    fenster_sleep(frame_time - elapsed);
+  }
+
+  f->lastsync = fenster_time();
+}
 #endif /* FENSTER_WINDOWS_H */

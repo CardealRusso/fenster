@@ -1,6 +1,7 @@
 CFLAGS ?= -Wall -Wextra -std=c99
 
 ifeq ($(OS),Windows_NT)
+	CC = gcc
 	LDFLAGS = -lgdi32
 else
 	UNAME_S := $(shell uname -s)
@@ -12,4 +13,4 @@ else
 endif
 
 main: main.c ../../src/fenster/fenster.h
-	$(CC) main.c -I../../src/fenster -o $@ $(CFLAGS) $(LDFLAGS)
+	$(CC) main.c -I../../src/fenster/ -o $@ $(CFLAGS) $(LDFLAGS)

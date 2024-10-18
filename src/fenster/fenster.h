@@ -16,7 +16,7 @@
 #endif
 
 #include <stdint.h>
-#include <stdlib.h>
+//#include <stdlib.h>
 #include <string.h>
 
 struct fenster {
@@ -24,12 +24,12 @@ struct fenster {
   const int width;
   const int height;
   uint32_t *buf;
-  int keys[256]; /* keys are mostly ASCII, but arrows are 17..20 */
-  int mod;       /* mod is 4 bits mask, ctrl=1, shift=2, alt=4, meta=8 */
-  int x;
-  int y;
-  int mclick[5];  // left, right, middle, scroll up, scroll down (cleared after read)
-  int mhold[3];   // left, right, middle (persistent until release)
+  int keys[256];      // keys are mostly ASCII, but arrows are 17..20
+  int modkeys[4];     // ctrl, shift, alt, meta
+  int mpos[2];        // mouse x, y
+  int mclick[5];      // left, right, middle, scroll up, scroll down (cleared after read)
+  int mhold[3];       // left, right, middle (persistent until release)
+  int64_t lastsync;   // last sync time
 #if defined(__APPLE__)
   id wnd;
 #elif defined(_WIN32)
@@ -51,6 +51,7 @@ FENSTER_API int fenster_loop(struct fenster *f);
 FENSTER_API void fenster_close(struct fenster *f);
 FENSTER_API void fenster_sleep(int64_t ms);
 FENSTER_API int64_t fenster_time(void);
+FENSTER_API void fenster_sync(struct fenster *f, int fps);
 
 #define fenster_pixel(f, x, y) ((f)->buf[((y) * (f)->width) + (x)])
 

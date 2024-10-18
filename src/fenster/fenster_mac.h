@@ -117,8 +117,8 @@ FENSTER_API int fenster_loop(struct fenster *f) {
   case 5:
   case 6: { /* NSEventTypeMouseMoved */
     CGPoint xy = msg(CGPoint, ev, "locationInWindow");
-    f->x = (int)xy.x;
-    f->y = (int)(f->height - xy.y);
+    f->mpos[0] = (int)xy.x;
+    f->mpos[1] = (int)(f->height - xy.y);
     return 0;
   }
   case 10: /*NSEventTypeKeyDown*/
@@ -126,7 +126,10 @@ FENSTER_API int fenster_loop(struct fenster *f) {
     NSUInteger k = msg(NSUInteger, ev, "keyCode");
     f->keys[k < 127 ? FENSTER_KEYCODES[k] : 0] = evtype == 10;
     NSUInteger mod = msg(NSUInteger, ev, "modifierFlags") >> 17;
-    f->mod = (mod & 0xc) | ((mod & 1) << 1) | ((mod >> 1) & 1);
+    f->modkeys[0] = (mod & 1) ? 1 : 0;      // Shift
+    f->modkeys[1] = (mod & 2) ? 1 : 0;      // Control
+    f->modkeys[2] = (mod & 4) ? 1 : 0;      // Alt/Option
+    f->modkeys[3] = (mod & 8) ? 1 : 0;      // Command
     return 0;
   }
   }
@@ -147,4 +150,13 @@ FENSTER_API int64_t fenster_time(void) {
   return time.tv_sec * 1000 + (time.tv_nsec / 1000000);
 }
 
+FENSTER_API void fenster_sync(struct fenster *f, int fps) {
+  int64_t frame_time = 1000 / fps;
+  int64_t elapsed = fenster_time() - f->lastsync;
+  if (elapsed < frame_time) {
+    fenster_sleep(frame_time - elapsed);
+  }
+
+  f->lastsync = fenster_time();
+}
 #endif /* FENSTER_MAC_H */

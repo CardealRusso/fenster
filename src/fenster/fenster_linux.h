@@ -48,7 +48,8 @@ FENSTER_API int fenster_loop(struct fenster *f) {
       }
       break;
     case MotionNotify:
-      f->x = ev.xmotion.x, f->y = ev.xmotion.y;
+      f->mpos[0] = ev.xmotion.x;
+      f->mpos[1] = ev.xmotion.y;
       break;
     case KeyPress:
     case KeyRelease: {
@@ -60,8 +61,10 @@ FENSTER_API int fenster_loop(struct fenster *f) {
           break;
         }
       }
-      f->mod = (!!(m & ControlMask)) | (!!(m & ShiftMask) << 1) |
-               (!!(m & Mod1Mask) << 2) | (!!(m & Mod4Mask) << 3);
+      f->modkeys[0] = !!(m & ControlMask);
+      f->modkeys[1] = !!(m & ShiftMask);
+      f->modkeys[2] = !!(m & Mod1Mask);
+      f->modkeys[3] = !!(m & Mod4Mask);
     } break;
     }
   }
@@ -81,4 +84,13 @@ FENSTER_API int64_t fenster_time(void) {
   return time.tv_sec * 1000 + (time.tv_nsec / 1000000);
 }
 
+FENSTER_API void fenster_sync(struct fenster *f, int fps) {
+  int64_t frame_time = 1000 / fps;
+  int64_t elapsed = fenster_time() - f->lastsync;
+  if (elapsed < frame_time) {
+    fenster_sleep(frame_time - elapsed);
+  }
+
+  f->lastsync = fenster_time();
+}
 #endif /* FENSTER_LINUX_H */

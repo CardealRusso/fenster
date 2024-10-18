@@ -25,8 +25,9 @@ static int run() {
   while (fenster_loop(&f) == 0) {
         printf("Click: L:%d R:%d M:%d SU:%d SD:%d | \n",
                f.mclick[0], f.mclick[1], f.mclick[2], f.mclick[3], f.mclick[4]);
+        fenster_sync(&f, 60);
   }
-  
+
   fenster_close(&f);
   return 0;
 }
