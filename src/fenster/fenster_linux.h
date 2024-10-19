@@ -7,6 +7,7 @@ static Atom wmDeleteWindow;
 // clang-format on
 
 FENSTER_API int fenster_open(struct fenster *f) {
+  f->buf = (uint32_t*)malloc(f->width * f->height * sizeof(uint32_t));
   f->dpy = XOpenDisplay(NULL);
   int screen = DefaultScreen(f->dpy);
   f->w = XCreateSimpleWindow(f->dpy, RootWindow(f->dpy, screen), 0, 0, f->width,
@@ -39,6 +40,22 @@ FENSTER_API int fenster_loop(struct fenster *f) {
   while (XPending(f->dpy)) {
     XNextEvent(f->dpy, &ev);
     switch (ev.type) {
+case ConfigureNotify: {
+    if (ev.xconfigure.width != f->width || ev.xconfigure.height != f->height) {
+        uint32_t *new_buf = realloc(f->buf, ev.xconfigure.width * ev.xconfigure.height * sizeof(uint32_t));
+        if (!new_buf) break;
+        
+        f->img->data = NULL;
+        XDestroyImage(f->img);
+        
+        f->buf = new_buf;
+        f->width = ev.xconfigure.width;
+        f->height = ev.xconfigure.height;
+        
+        f->img = XCreateImage(f->dpy, DefaultVisual(f->dpy, 0), 24, ZPixmap, 0,
+                            (char *)f->buf, f->width, f->height, 32, 0);
+    }
+} break;
     case ClientMessage:
       if ((Atom)ev.xclient.data.l[0] == wmDeleteWindow) {
         return 1;

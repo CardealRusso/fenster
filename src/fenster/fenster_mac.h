@@ -16,6 +16,19 @@
 extern id const NSDefaultRunLoopMode;
 extern id const NSApp;
 
+static void fenster_window_resize(id v, SEL s, id note) {
+    (void)s;
+    struct fenster *f = (struct fenster *)objc_getAssociatedObject(v, "fenster");
+    CGRect frame = msg(CGRect, msg(id, note, "object"), "frame");
+    
+    uint32_t *new_buf = realloc(f->buf, frame.size.width * frame.size.height * sizeof(uint32_t));
+    if (!new_buf) return;
+    
+    f->buf = new_buf;
+    f->width = frame.size.width;
+    f->height = frame.size.height;
+}
+
 static void fenster_draw_rect(id v, SEL s, CGRect r) {
   (void)r, (void)s;
   struct fenster *f = (struct fenster *)objc_getAssociatedObject(v, "fenster");
@@ -42,6 +55,8 @@ static BOOL fenster_should_close(id v, SEL s, id w) {
 }
 
 FENSTER_API int fenster_open(struct fenster *f) {
+  f->buf = malloc(f->width * f->height * sizeof(uint32_t));
+  if (!f->buf) return -1;
   msg(id, cls("NSApplication"), "sharedApplication");
   msg1(void, NSApp, "setActivationPolicy:", NSInteger, 0);
   f->wnd = msg4(id, msg(id, cls("NSWindow"), "alloc"),
@@ -69,11 +84,18 @@ FENSTER_API int fenster_open(struct fenster *f) {
   msg1(void, f->wnd, "makeKeyAndOrderFront:", id, nil);
   msg(void, f->wnd, "center");
   msg1(void, NSApp, "activateIgnoringOtherApps:", BOOL, YES);
+  class_addMethod(c, sel_getUid("windowDidResize:"), (IMP)fenster_window_resize, "v@:@");
+  msg4(void, msg(id, cls("NSNotificationCenter"), "defaultCenter"),
+       "addObserver:selector:name:object:", id, v,
+       SEL, sel_getUid("windowDidResize:"),
+       id, msg1(id, cls("NSString"), "stringWithUTF8String:", const char*, "NSWindowDidResizeNotification"),
+       id, f->wnd);
   return 0;
 }
 
 FENSTER_API void fenster_close(struct fenster *f) {
-  msg(void, f->wnd, "close");
+    free(f->buf);
+    msg(void, f->wnd, "close");
 }
 
 // clang-format off

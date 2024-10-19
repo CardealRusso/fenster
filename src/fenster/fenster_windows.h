@@ -14,6 +14,21 @@ static LRESULT CALLBACK fenster_wndproc(HWND hwnd, UINT msg, WPARAM wParam,
                                         LPARAM lParam) {
   struct fenster *f = (struct fenster *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
   switch (msg) {
+  case WM_SIZE: {
+    RECT rect;
+    GetClientRect(hwnd, &rect);
+    int new_width = rect.right - rect.left;
+    int new_height = rect.bottom - rect.top;
+    
+    if (new_width != f->width || new_height != f->height) {
+        uint32_t *new_buf = realloc(f->buf, new_width * new_height * sizeof(uint32_t));
+        if (!new_buf) break;
+        
+        f->buf = new_buf;
+        f->width = new_width;
+        f->height = new_height;
+    }
+  } break;
   case WM_PAINT: {
     PAINTSTRUCT ps;
     HDC hdc = BeginPaint(hwnd, &ps);
@@ -81,6 +96,7 @@ static LRESULT CALLBACK fenster_wndproc(HWND hwnd, UINT msg, WPARAM wParam,
 }
 
 FENSTER_API int fenster_open(struct fenster *f) {
+  f->buf = (uint32_t*)malloc(f->width * f->height * sizeof(uint32_t));
   HINSTANCE hInstance = GetModuleHandle(NULL);
   WNDCLASSEX wc = {0};
   wc.cbSize = sizeof(WNDCLASSEX);
@@ -101,7 +117,10 @@ FENSTER_API int fenster_open(struct fenster *f) {
   return 0;
 }
 
-FENSTER_API void fenster_close(struct fenster *f) { (void)f; }
+FENSTER_API void fenster_close(struct fenster *f) {
+    free(f->buf);
+    (void)f;
+}
 
 FENSTER_API int fenster_loop(struct fenster *f) {
   memset(f->mclick, 0, sizeof(f->mclick));

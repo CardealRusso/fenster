@@ -2,30 +2,17 @@
 #include <stdio.h>
 #include <string.h>
 
-#define W 320
-#define H 240
-
-/* ============================================================
- * Mouse buttons states example:
- * - Opens a window
- * - Starts a loop
- * - Print current state of mouse buttons (clicked and holding)
- *   only if there's a change
- * - Closes a window
- * ============================================================ */
 static int run() {
-  uint32_t buf[W * H];
-  struct fenster f = {
-      .title = "Mouse Buttons",
-      .width = W,
-      .height = H,
-      .buf = buf,
-  };
+  struct fenster f = {.title = "Mouse Buttons",.width = 320,.height = 240,};
   fenster_open(&f);
   while (fenster_loop(&f) == 0) {
-        printf("Click: L:%d R:%d M:%d SU:%d SD:%d | \n",
-               f.mclick[0], f.mclick[1], f.mclick[2], f.mclick[3], f.mclick[4]);
-        fenster_sync(&f, 60);
+    for (int i = 0; i < f.width; i++) {
+      for (int j = 0; j < f.height; j++) {
+        fenster_pixel(&f, i, j) = rand();
+      }
+    }
+    printf("Click: L:%d R:%d M:%d SU:%d SD:%d | \n",f.mclick[0], f.mclick[1], f.mclick[2], f.mclick[3], f.mclick[4]);
+    fenster_sync(&f, 60);
   }
 
   fenster_close(&f);

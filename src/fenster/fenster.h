@@ -9,8 +9,10 @@
 #include <windows.h>
 #else
 #define _DEFAULT_SOURCE 1
+#include <stdlib.h>
 #include <X11/XKBlib.h>
 #include <X11/Xlib.h>
+#include <X11/Xutil.h>
 #include <X11/keysym.h>
 #include <time.h>
 #endif
@@ -21,8 +23,8 @@
 
 struct fenster {
   const char *title;
-  const int width;
-  const int height;
+  int width;
+  int height;
   uint32_t *buf;
   int keys[256];      // keys are mostly ASCII, but arrows are 17..20
   int modkeys[4];     // ctrl, shift, alt, meta
