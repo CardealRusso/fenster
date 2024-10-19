@@ -11,7 +11,7 @@ Code is distributed under MIT license, feel free to use it in your proprietary p
 - Platform-agnostic structure for audio
 - Mouse: Left, Right, Middle, Scrollup/down
 - Window resize (buf size is handled internally)
-- Added: fenster_sync
+- Added: fenster_sync, fenster_resize
 - Changed: array on modkeys, mouse pos
 
 ```C
@@ -28,4 +28,5 @@ struct fenster {
 };
 
 FENSTER_API void fenster_sync(struct fenster *f, int fps);
+FENSTER_API void fenster_resize(struct fenster *f, int width, int height);
 ```

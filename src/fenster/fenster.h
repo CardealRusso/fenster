@@ -54,6 +54,7 @@ FENSTER_API void fenster_close(struct fenster *f);
 FENSTER_API void fenster_sleep(int64_t ms);
 FENSTER_API int64_t fenster_time(void);
 FENSTER_API void fenster_sync(struct fenster *f, int fps);
+FENSTER_API void fenster_resize(struct fenster *f, int width, int height);
 
 #define fenster_pixel(f, x, y) ((f)->buf[((y) * (f)->width) + (x)])
 

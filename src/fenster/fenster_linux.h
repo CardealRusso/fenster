@@ -123,4 +123,9 @@ FENSTER_API void fenster_sync(struct fenster *f, int fps) {
 
   f->lastsync = fenster_time();
 }
+
+FENSTER_API void fenster_resize(struct fenster *f, int width, int height) {
+    XResizeWindow(f->dpy, f->w, width, height);
+    XFlush(f->dpy);
+}
 #endif /* FENSTER_LINUX_H */

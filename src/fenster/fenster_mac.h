@@ -181,4 +181,13 @@ FENSTER_API void fenster_sync(struct fenster *f, int fps) {
 
   f->lastsync = fenster_time();
 }
+
+FENSTER_API void fenster_resize(struct fenster *f, int width, int height) {
+    id contentView = msg(id, f->wnd, "contentView");
+    struct objc_super super = { contentView, cls("NSView") };
+    CGRect newFrame = CGRectMake(0, 0, width, height);
+    
+    msg2(void, f->wnd, "setFrame:display:", CGRect, newFrame, BOOL, YES);
+    msg(void, f->wnd, "center");
+}
 #endif /* FENSTER_MAC_H */

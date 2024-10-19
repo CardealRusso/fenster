@@ -35,7 +35,7 @@ static LRESULT CALLBACK fenster_wndproc(HWND hwnd, UINT msg, WPARAM wParam,
     HDC memdc = CreateCompatibleDC(hdc);
     HBITMAP hbmp = CreateCompatibleBitmap(hdc, f->width, f->height);
     HBITMAP oldbmp = SelectObject(memdc, hbmp);
-    BINFO bi = {{sizeof(bi), f->width, -f->height, 1, 32, BI_BITFIELDS}};
+    BINFO bi = {{sizeof(BITMAPINFOHEADER), f->width, -f->height, 1, 32, BI_BITFIELDS, 0, 0, 0, 0, 0}, {{0}}};
     bi.bmiColors[0].rgbRed = 0xff;
     bi.bmiColors[1].rgbGreen = 0xff;
     bi.bmiColors[2].rgbBlue = 0xff;
@@ -152,5 +152,14 @@ FENSTER_API void fenster_sync(struct fenster *f, int fps) {
   }
 
   f->lastsync = fenster_time();
+}
+
+FENSTER_API void fenster_resize(struct fenster *f, int width, int height) {
+    RECT rect = {0, 0, width, height};
+    AdjustWindowRectEx(&rect, WS_OVERLAPPEDWINDOW, FALSE, WS_EX_CLIENTEDGE);
+    SetWindowPos(f->hwnd, NULL, 0, 0, 
+                rect.right - rect.left, 
+                rect.bottom - rect.top,
+                SWP_NOMOVE | SWP_NOZORDER);
 }
 #endif /* FENSTER_WINDOWS_H */
