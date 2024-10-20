@@ -18,7 +18,6 @@
 #endif
 
 #include <stdint.h>
-//#include <stdlib.h>
 #include <string.h>
 
 struct fenster {
@@ -64,6 +63,10 @@ FENSTER_API void fenster_resize(struct fenster *f, int width, int height);
 #include "fenster_windows.h"
 #else
 #include "fenster_linux.h"
+#endif
+
+#ifdef USE_FONTS
+#include "../fenster_font.h"
 #endif
 
 #endif /* FENSTER_H */

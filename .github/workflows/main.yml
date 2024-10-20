@@ -19,6 +19,10 @@ jobs:
       with:
         submodules: 'recursive'
 
-    - name: Compile
+    - name: Compile mouse buttons example
       run: make -C examples/mousebuttons-c/
+      shell: bash
+
+    - name: Compile text example
+      run: make -C examples/text-ttf-c/
       shell: bash
