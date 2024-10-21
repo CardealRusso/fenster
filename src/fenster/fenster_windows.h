@@ -3,6 +3,7 @@
 
 // clang-format off
 static const uint8_t FENSTER_KEYCODES[] = {0,27,49,50,51,52,53,54,55,56,57,48,45,61,8,9,81,87,69,82,84,89,85,73,79,80,91,93,10,0,65,83,68,70,71,72,74,75,76,59,39,96,0,92,90,88,67,86,66,78,77,44,46,47,0,0,0,32,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,17,3,0,20,0,19,0,5,18,4,26,127};
+static WINDOWPLACEMENT g_wpPrev = { sizeof(WINDOWPLACEMENT) };
 // clang-format on
 
 typedef struct BINFO {
@@ -161,5 +162,29 @@ FENSTER_API void fenster_resize(struct fenster *f, int width, int height) {
                 rect.right - rect.left, 
                 rect.bottom - rect.top,
                 SWP_NOMOVE | SWP_NOZORDER);
+}
+
+FENSTER_API void fenster_fullscreen(struct fenster *f, int enabled) {
+    DWORD dwStyle = GetWindowLong(f->hwnd, GWL_STYLE);
+    
+    if (enabled) {
+        GetWindowPlacement(f->hwnd, &g_wpPrev);
+        SetWindowLong(f->hwnd, GWL_STYLE, dwStyle & ~WS_OVERLAPPEDWINDOW);
+        
+        MONITORINFO mi = { sizeof(MONITORINFO) };
+        GetMonitorInfo(MonitorFromWindow(f->hwnd, MONITOR_DEFAULTTOPRIMARY), &mi);
+        
+        SetWindowPos(f->hwnd, HWND_TOP,
+            mi.rcMonitor.left, mi.rcMonitor.top,
+            mi.rcMonitor.right - mi.rcMonitor.left,
+            mi.rcMonitor.bottom - mi.rcMonitor.top,
+            SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+    } else {
+        SetWindowLong(f->hwnd, GWL_STYLE, dwStyle | WS_OVERLAPPEDWINDOW);
+        SetWindowPlacement(f->hwnd, &g_wpPrev);
+        SetWindowPos(f->hwnd, NULL, 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
+            SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+    }
 }
 #endif /* FENSTER_WINDOWS_H */

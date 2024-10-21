@@ -190,4 +190,19 @@ FENSTER_API void fenster_resize(struct fenster *f, int width, int height) {
     msg2(void, f->wnd, "setFrame:display:", CGRect, newFrame, BOOL, YES);
     msg(void, f->wnd, "center");
 }
+
+FENSTER_API void fenster_fullscreen(struct fenster *f, int enabled) {
+    // Toggle fullscreen using NSWindow's toggleFullScreen: method
+    msg1(void, f->wnd, "toggleFullScreen:", id, nil);
+    
+    // Update window style mask based on fullscreen state
+    NSUInteger styleMask = msg(NSUInteger, f->wnd, "styleMask");
+    if (enabled) {
+        styleMask |= 1 << 14;  // NSWindowStyleMaskFullScreen
+    } else {
+        styleMask &= ~(1 << 14);
+    }
+    msg1(void, f->wnd, "setStyleMask:", NSUInteger, styleMask);
+}
+
 #endif /* FENSTER_MAC_H */

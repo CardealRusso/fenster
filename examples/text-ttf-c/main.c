@@ -5,6 +5,7 @@ static int run() {
     fenster_open(&f);
 
     int frame = 0;
+    int fs = 0;
     char frametext[100];
     FensterFont* font = fenster_loadfont("LiberationMono-Regular.ttf");
 
@@ -17,6 +18,17 @@ static int run() {
         sprintf(frametext, "\\s%d Frame: %d", f.width/16, frame);
         fenster_drawtext(&f, font, frametext, f.mpos[0], f.mpos[1]);
         fenster_sync(&f, 30);
+        if (f.keys[70] == 1) {
+          if (fs == 0) {
+            fenster_fullscreen(&f, 1);
+            fs = 1;
+            fenster_sleep(100);
+          } else {
+            fenster_fullscreen(&f, 0);
+            fs = 0;
+            fenster_sleep(100);
+          }
+        }
         frame++;
     }
 
