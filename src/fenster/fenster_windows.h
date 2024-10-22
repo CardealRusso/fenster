@@ -14,6 +14,9 @@ static WINDOWPLACEMENT g_wpPrev = {
     {0, 0, 0, 0}          // rcNormalPosition
 };
 
+static HCURSOR cursors[6];
+static int cursors_initialized = 0;
+
 typedef struct BINFO {
     BITMAPINFOHEADER    bmiHeader;
     RGBQUAD             bmiColors[3];
@@ -127,6 +130,9 @@ FENSTER_API int fenster_open(struct fenster *f) {
 }
 
 FENSTER_API void fenster_close(struct fenster *f) {
+    // Ensure cursor is visible when closing
+    while (ShowCursor(TRUE) < 0);
+
     free(f->buf);
     (void)f;
 }
@@ -199,6 +205,41 @@ FENSTER_API void fenster_fullscreen(struct fenster *f, int enabled) {
         SetWindowPos(f->hwnd, NULL, 0, 0, 0, 0,
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
             SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+    }
+}
+
+FENSTER_API void fenster_cursor(struct fenster *f, int type) {
+    // Initialize cursors on first use
+    if (!cursors_initialized) {
+        cursors[0] = NULL;  // Will be used for hidden cursor
+        cursors[1] = LoadCursor(NULL, IDC_ARROW);      // Normal arrow
+        cursors[2] = LoadCursor(NULL, IDC_HAND);       // Pointer/hand
+        cursors[3] = LoadCursor(NULL, IDC_WAIT);       // Progress/wait
+        cursors[4] = LoadCursor(NULL, IDC_CROSS);      // Crosshair
+        cursors[5] = LoadCursor(NULL, IDC_IBEAM);      // Text
+        cursors_initialized = 1;
+    }
+
+    if (type < 0 || type > 5) {
+        type = 1;  // Default to normal cursor if invalid type
+    }
+
+    if (type == 0) {
+        // Hide cursor
+        while (ShowCursor(FALSE) >= 0);
+    } else {
+        // Show cursor if it was hidden
+        while (ShowCursor(TRUE) < 0);
+        
+        // Set the cursor
+        SetCursor(cursors[type]);
+        
+        // Also set the class cursor so it persists
+        WNDCLASSEX wc;
+        wc.cbSize = sizeof(WNDCLASSEX);
+        GetClassInfoEx(GetModuleHandle(NULL), f->title, &wc);
+        wc.hCursor = cursors[type];
+        SetClassLongPtr(f->hwnd, GCLP_HCURSOR, (LONG_PTR)cursors[type]);
     }
 }
 #endif /* FENSTER_WINDOWS_H */

@@ -6,6 +6,8 @@ static int FENSTER_KEYCODES[124] = {XK_BackSpace,8,XK_Delete,127,XK_Down,18,XK_E
 static Atom wmDeleteWindow;
 static Atom wm_state;
 static Atom wm_fullscreen;
+static Cursor cursors[6];
+static int cursors_initialized = 0;
 // clang-format on
 
 FENSTER_API int fenster_open(struct fenster *f) {
@@ -34,6 +36,12 @@ FENSTER_API int fenster_open(struct fenster *f) {
 }
 FENSTER_API void fenster_close(struct fenster *f) {
   XDestroyWindow(f->dpy, f->w);
+  if (cursors_initialized) {
+    for (int i = 1; i <= 5; i++) {
+      XFreeCursor(f->dpy, cursors[i]);
+    }
+    cursors_initialized = 0;
+  }
   XCloseDisplay(f->dpy);
 }
 FENSTER_API int fenster_loop(struct fenster *f) {
@@ -148,4 +156,30 @@ FENSTER_API void fenster_fullscreen(struct fenster *f, int enabled) {
     XFlush(f->dpy);
 }
 
+FENSTER_API void fenster_cursor(struct fenster *f, int type) {
+    if (!cursors_initialized) {
+        cursors[0] = 0;                                           // None/hidden
+        cursors[1] = XCreateFontCursor(f->dpy, XC_left_ptr);      // Normal arrow
+        cursors[2] = XCreateFontCursor(f->dpy, XC_hand2);         // Pointer/hand
+        cursors[3] = XCreateFontCursor(f->dpy, XC_watch);         // Progress
+        cursors[4] = XCreateFontCursor(f->dpy, XC_crosshair);     // Crosshair
+        cursors[5] = XCreateFontCursor(f->dpy, XC_xterm);         // Text
+        cursors_initialized = 1;
+    }
+
+    if (type == 0) {
+        // Hide cursor
+        XColor dummy;
+        Pixmap blank = XCreateBitmapFromData(f->dpy, f->w, "\0\0\0\0\0\0\0\0", 1, 1);
+        Cursor invisible = XCreatePixmapCursor(f->dpy, blank, blank, &dummy, &dummy, 0, 0);
+        XDefineCursor(f->dpy, f->w, invisible);
+        XFreeCursor(f->dpy, invisible);
+        XFreePixmap(f->dpy, blank);
+    } else {
+        // Set the cursor from our pre-created cursors
+        XDefineCursor(f->dpy, f->w, cursors[type]);
+    }
+    
+    XFlush(f->dpy);
+}
 #endif /* FENSTER_LINUX_H */

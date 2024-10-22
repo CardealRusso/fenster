@@ -20,7 +20,7 @@ static int run() {
       pos = 0;
     }
     FensterFont* font = fenster_loadfont(fonts.paths[pos]);
-
+    fenster_cursor(&f, 5);
     while (fenster_loop(&f) == 0 && f.keys[27] == 0) {
         // fast screen clear
         memset(f.buf, 0, f.width * f.height * sizeof(uint32_t));

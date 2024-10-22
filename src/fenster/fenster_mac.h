@@ -1,10 +1,6 @@
 #ifndef FENSTER_MAC_H
 #define FENSTER_MAC_H
 
-#include <CoreGraphics/CoreGraphics.h>
-#include <objc/NSObjCRuntime.h>
-#include <objc/objc-runtime.h>
-
 #define msg(r, o, s) ((r(*)(id, SEL))objc_msgSend)(o, sel_getUid(s))
 #define msg1(r, o, s, A, a) ((r(*)(id, SEL, A))objc_msgSend)(o, sel_getUid(s), a)
 #define msg2(r, o, s, A, a, B, b) ((r(*)(id, SEL, A, B))objc_msgSend)(o, sel_getUid(s), a, b)
@@ -15,6 +11,8 @@
 
 extern id const NSDefaultRunLoopMode;
 extern id const NSApp;
+extern id NSCursor;
+static id cursors[6];
 
 static void fenster_window_resize(id v, SEL s, id note) {
     (void)s;
@@ -94,8 +92,11 @@ FENSTER_API int fenster_open(struct fenster *f) {
 }
 
 FENSTER_API void fenster_close(struct fenster *f) {
-    free(f->buf);
-    msg(void, f->wnd, "close");
+  // Ensure cursor is visible when closing
+  msg(void, cls("NSCursor"), "unhide");
+
+  free(f->buf);
+  msg(void, f->wnd, "close");
 }
 
 // clang-format off
@@ -200,6 +201,34 @@ FENSTER_API void fenster_fullscreen(struct fenster *f, int enabled) {
         styleMask &= ~(1 << 14);
     }
     msg1(void, f->wnd, "setStyleMask:", NSUInteger, styleMask);
+}
+
+FENSTER_API void fenster_cursor(struct fenster *f, int type) {
+    // Initialize cursors on first use
+    if (!cursors[1]) {
+        // Hide cursor (NULL represents hidden cursor)
+        cursors[0] = NULL;
+        // Normal arrow cursor
+        cursors[1] = msg(id, cls("NSCursor"), "arrowCursor");
+        // Pointer/hand cursor
+        cursors[2] = msg(id, cls("NSCursor"), "pointingHandCursor");
+        // Progress/wait cursor
+        cursors[3] = msg(id, cls("NSCursor"), "operationNotAllowedCursor");
+        // Crosshair cursor
+        cursors[4] = msg(id, cls("NSCursor"), "crosshairCursor");
+        // Text cursor
+        cursors[5] = msg(id, cls("NSCursor"), "IBeamCursor");
+    }
+
+    if (type == 0) {
+        // Hide the cursor
+        msg(void, cls("NSCursor"), "hide");
+    } else {
+        // Show the cursor if it was hidden
+        msg(void, cls("NSCursor"), "unhide");
+        // Set and push the new cursor
+        msg(void, cursors[type], "set");
+    }
 }
 
 #endif /* FENSTER_MAC_H */

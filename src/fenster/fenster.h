@@ -5,6 +5,7 @@
 #include <CoreGraphics/CoreGraphics.h>
 #include <objc/NSObjCRuntime.h>
 #include <objc/objc-runtime.h>
+#include <ApplicationServices/ApplicationServices.h>
 #elif defined(_WIN32)
 #include <windows.h>
 #else
@@ -14,6 +15,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
+#include <X11/cursorfont.h>
 #include <time.h>
 #endif
 
@@ -55,6 +57,7 @@ FENSTER_API int64_t fenster_time(void);
 FENSTER_API void fenster_sync(struct fenster *f, int fps);
 FENSTER_API void fenster_resize(struct fenster *f, int width, int height);
 FENSTER_API void fenster_fullscreen(struct fenster *f, int enabled);
+FENSTER_API void fenster_cursor(struct fenster *f, int type);
 
 #define fenster_pixel(f, x, y) ((f)->buf[((y) * (f)->width) + (x)])
 
