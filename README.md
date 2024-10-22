@@ -14,7 +14,7 @@ Code is distributed under MIT license, feel free to use it in your proprietary p
 - Buf size is handled internally
 - Window resize
 - TTF text drawing with basic formatting syntax (\\\c(color) \\\s(font size) \\\n(newline)  \\\p(spacing) \\\h(line spacing))
-- Added: fenster_fullscreen, fenster_sync, fenster_resize, fenster_loadfont, fenster_drawtext
+- Added: fenster_fullscreen, fenster_sync, fenster_resize, fenster_loadfont, fenster_(loadfont, findfontin, freefont)list, fenster_drawtext
 - Changed: array on modkeys, mouse pos
 
 ```C
@@ -38,5 +38,9 @@ FENSTER_API void fenster_fullscreen(struct fenster *f, int enabled);
 FensterFont* fenster_loadfont(const char* filename);
 void fenster_drawtext(struct fenster* f, FensterFont* font, const char* text, int x, int y);
 void fenster_freefont(FensterFont* font);
+
+FensterFontList fenster_loadfontlist();
+int fenster_findfontinlist(FensterFontList *fonts, const char *term);
+void fenster_freefontlist(FensterFontList *fonts);
 #endif
 ```

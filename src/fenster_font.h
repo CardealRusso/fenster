@@ -7,11 +7,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
+
+#if defined(__linux__) || defined(__APPLE__)
+#include <glob.h>
+#elif defined(_WIN32)
+#include <windows.h>
+#endif
 
 typedef struct {
     stbtt_fontinfo info;
     unsigned char* buffer;
 } FensterFont;
+
+typedef struct {
+    char **paths;
+    size_t count;
+} FensterFontList;
 
 typedef struct {
     uint32_t color;
@@ -23,16 +35,35 @@ typedef struct {
     float line_spacing;
 } RenderState;
 
+FensterFont* fenster_loadfont(const char* filename);
+void fenster_freefont(FensterFont* font);
+FensterFontList fenster_loadfontlist(void);
+void fenster_freefontlist(FensterFontList *fonts);
+int fenster_findfontinlist(FensterFontList *fonts, const char *term);
+
+void fenster_drawtext(struct fenster* f, FensterFont* font, const char* text, int x, int y);
+
+static void to_lowercase(char *str);
+static void add_font(FensterFontList *fonts, const char *font);
 static const char* skip_space(const char* str);
 static const char* read_number(const char* str, float* number);
 static const char* read_color(const char* str, uint32_t* color);
 static void render_char(struct fenster* f, FensterFont* font, char c, RenderState* state);
 static const char* handle_command(const char* p, RenderState* state, float base_x, 
-                                  stbtt_fontinfo* info, int ascent, int descent, int lineGap);
+                                stbtt_fontinfo* info, int ascent, int descent, int lineGap);
 
-FensterFont* fenster_loadfont(const char* filename);
-void fenster_drawtext(struct fenster* f, FensterFont* font, const char* text, int x, int y);
-void fenster_freefont(FensterFont* font);
+#if defined(__linux__) || defined(__APPLE__)
+static void get_fonts_posix(FensterFontList *fonts);
+#elif defined(_WIN32)
+static void get_fonts_windows(FensterFontList *fonts);
+#endif
+
+/* String manipulation functions */
+static void to_lowercase(char *str) {
+    for (size_t i = 0; str[i]; i++) {
+        str[i] = tolower((unsigned char)str[i]);
+    }
+}
 
 static const char* skip_space(const char* str) {
     if (*str == ' ') str++;
@@ -63,6 +94,65 @@ static const char* read_color(const char* str, uint32_t* color) {
     return str;
 }
 
+/* Font list management functions */
+static void add_font(FensterFontList *fonts, const char *font) {
+    fonts->paths = realloc(fonts->paths, (fonts->count + 1) * sizeof(char *));
+    if (fonts->paths) {
+        fonts->paths[fonts->count] = strdup(font);
+        fonts->count++;
+    }
+}
+
+#if defined(__linux__) || defined(__APPLE__)
+static void get_fonts_posix(FensterFontList *fonts) {
+    const char *searchPatterns[] = {
+        "~/.local/share/fonts/**/*.ttf",
+        "~/.fonts/**/*.ttf",
+        "/usr/*/fonts/**/*.ttf",
+        "/usr/*/*/fonts/**/*.ttf",
+        "/usr/*/*/*/fonts/**/*.ttf",
+        "/usr/*/*/*/*/fonts/**/*.ttf",
+        "/Library/Fonts/**/*.ttf",
+        "/System/Library/Fonts/**/*.ttf"
+    };
+    
+    glob_t results;
+    for (size_t i = 0; i < sizeof(searchPatterns) / sizeof(searchPatterns[0]); i++) {
+        if (glob(searchPatterns[i], GLOB_TILDE | GLOB_NOSORT, NULL, &results) == 0) {
+            for (size_t j = 0; j < results.gl_pathc; j++) {
+                add_font(fonts, results.gl_pathv[j]);
+            }
+            globfree(&results);
+        }
+    }
+}
+#elif defined(_WIN32)
+static void get_fonts_windows(FensterFontList *fonts) {
+    char systemRoot[MAX_PATH];
+    char fontPath[MAX_PATH];
+    
+    if (GetEnvironmentVariable("SYSTEMROOT", systemRoot, sizeof(systemRoot)) == 0) {
+        return;
+    }
+    
+    snprintf(fontPath, sizeof(fontPath), "%s\\Fonts\\*.ttf", systemRoot);
+    
+    WIN32_FIND_DATA findFileData;
+    HANDLE hFind = FindFirstFile(fontPath, &findFileData);
+    
+    if (hFind != INVALID_HANDLE_VALUE) {
+        do {
+            char fullPath[MAX_PATH];
+            snprintf(fullPath, sizeof(fullPath), "%s\\Fonts\\%s", 
+                    systemRoot, findFileData.cFileName);
+            add_font(fonts, fullPath);
+        } while (FindNextFile(hFind, &findFileData) != 0);
+        FindClose(hFind);
+    }
+}
+#endif
+
+/* Text rendering functions */
 static void render_char(struct fenster* f, FensterFont* font, char c, RenderState* state) {
     int advance, lsb, x0, y0, x1, y1;
     stbtt_GetCodepointHMetrics(&font->info, c, &advance, &lsb);
@@ -127,9 +217,12 @@ static const char* handle_command(const char* p, RenderState* state, float base_
     return p;
 }
 
+/* Public API Implementation */
 FensterFont* fenster_loadfont(const char* filename) {
     FILE* font_file = fopen(filename, "rb");
-    if (!font_file) return NULL;
+    if (!font_file) {
+        return NULL;
+    }
 
     FensterFont* font = malloc(sizeof(FensterFont));
     if (!font) {
@@ -148,7 +241,13 @@ FensterFont* fenster_loadfont(const char* filename) {
         return NULL;
     }
 
-    fread(font->buffer, buffer_size, 1, font_file);
+    if (fread(font->buffer, buffer_size, 1, font_file) != 1) {
+        free(font->buffer);
+        free(font);
+        fclose(font_file);
+        return NULL;
+    }
+
     fclose(font_file);
 
     if (!stbtt_InitFont(&font->info, font->buffer, 0)) {
@@ -187,6 +286,60 @@ void fenster_drawtext(struct fenster* f, FensterFont* font, const char* text, in
         render_char(f, font, *p, &state);
         p++;
     }
+}
+
+FensterFontList fenster_loadfontlist(void) {
+    FensterFontList fonts = {NULL, 0};
+    
+    #if defined(__linux__) || defined(__APPLE__)
+    get_fonts_posix(&fonts);
+    #elif defined(_WIN32)
+    get_fonts_windows(&fonts);
+    #endif
+
+    return fonts;
+}
+
+int fenster_findfontinlist(FensterFontList *fonts, const char *term) {
+    if (!fonts || !term) {
+        return -1;
+    }
+
+    char *term_lower = strdup(term);
+    if (!term_lower) {
+        return -1;
+    }
+    
+    to_lowercase(term_lower);
+    int found_index = -1;
+
+    for (size_t i = 0; i < fonts->count && found_index == -1; i++) {
+        char *path_lower = strdup(fonts->paths[i]);
+        if (path_lower) {
+            to_lowercase(path_lower);
+            if (strstr(path_lower, term_lower)) {
+                found_index = i;
+            }
+            free(path_lower);
+        }
+    }
+
+    free(term_lower);
+    return found_index;
+}
+
+void fenster_freefontlist(FensterFontList *fonts) {
+    if (!fonts) {
+        return;
+    }
+    
+    for (size_t i = 0; i < fonts->count; i++) {
+        free(fonts->paths[i]);
+    }
+    
+    free(fonts->paths);
+    fonts->paths = NULL;
+    fonts->count = 0;
 }
 
 void fenster_freefont(FensterFont* font) {

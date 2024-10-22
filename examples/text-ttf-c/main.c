@@ -7,9 +7,21 @@ static int run() {
     int frame = 0;
     int fs = 0;
     char frametext[100];
-    FensterFont* font = fenster_loadfont("LiberationMono-Regular.ttf");
+    FensterFontList fonts = fenster_loadfontlist();
+    if (fonts.count < 1) {
+      printf("I couldn't find any system ttf font.\n");
+      return 1;
+    }
+    int pos = fenster_findfontinlist(&fonts, "liberation");
+    if (pos == -1) {
+        pos = fenster_findfontinlist(&fonts, "dejavu");
+    }
+    if (pos == -1 ) {
+      pos = 0;
+    }
+    FensterFont* font = fenster_loadfont(fonts.paths[pos]);
 
-    while (fenster_loop(&f) == 0) {
+    while (fenster_loop(&f) == 0 && f.keys[27] == 0) {
         // fast screen clear
         memset(f.buf, 0, f.width * f.height * sizeof(uint32_t));
 
@@ -33,6 +45,7 @@ static int run() {
     }
 
     fenster_freefont(font);
+    fenster_freefontlist(&fonts);
     fenster_close(&f);
     return 0;
 }
