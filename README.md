@@ -14,8 +14,9 @@ Code is distributed under MIT license, feel free to use it in your proprietary p
 - Buf size is handled internally
 - Window resize (fenster_resize)
 - Cursor pointer (fenster_cursor = 0 hidden, 1 normal, 2 pointer, 3 progress, 4 crosshair, 5 text)
+- Fast fill (memset for 0, avx2 for non-zero)
 - TTF text drawing with basic formatting syntax (\\\c(color) \\\s(font size) \\\n(newline)  \\\p(spacing) \\\h(line spacing))
-- Added: fenster_fullscreen, fenster_sync, fenster_resize, fenster_loadfont, fenster_(loadfont, findfontin, freefont)list, fenster_drawtext
+- Added: fenster_fill, fenster_fullscreen, fenster_sync, fenster_resize, fenster_loadfont, fenster_(loadfont, findfontin, freefont)list, fenster_drawtext
 - Changed: array on modkeys, mouse pos
 
 ```C
@@ -35,6 +36,7 @@ FENSTER_API void fenster_sync(struct fenster *f, int fps);
 FENSTER_API void fenster_resize(struct fenster *f, int width, int height);
 FENSTER_API void fenster_fullscreen(struct fenster *f, int enabled);
 FENSTER_API void fenster_cursor(struct fenster *f, int type);
+static inline void fenster_fill(struct fenster *f, uint32_t color)
 
 #ifdef USE_FONTS
 FensterFont* fenster_loadfont(const char* filename);
@@ -45,4 +47,5 @@ FensterFontList fenster_loadfontlist();
 int fenster_findfontinlist(FensterFontList *fonts, const char *term);
 void fenster_freefontlist(FensterFontList *fonts);
 #endif
+
 ```

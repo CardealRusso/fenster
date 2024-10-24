@@ -8,28 +8,17 @@ static int run() {
     int fs = 0;
     char frametext[100];
     FensterFontList fonts = fenster_loadfontlist();
-    if (fonts.count < 1) {
-      printf("I couldn't find any system ttf font.\n");
-      return 1;
-    }
-    int pos = fenster_findfontinlist(&fonts, "liberation");
-    if (pos == -1) {
-        pos = fenster_findfontinlist(&fonts, "dejavu");
-    }
-    if (pos == -1 ) {
-      pos = 0;
-    }
-    FensterFont* font = fenster_loadfont(fonts.paths[pos]);
-    fenster_cursor(&f, 5);
+    FensterFont* font = fenster_loadfont(fonts.paths[0]);
+
     while (fenster_loop(&f) == 0 && f.keys[27] == 0) {
-        // fast screen clear
-        memset(f.buf, 0, f.width * f.height * sizeof(uint32_t));
+        fenster_fill(&f, 0);
 
         fenster_drawtext(&f, font, "\\c0x526D82 Hello \\s32 \\c0xDDE6ED BIG \\s16 \\c0x526D82 World \\n From FensterB!", 10, 10);
 
         sprintf(frametext, "\\s%d Frame: %d", f.width/16, frame);
         fenster_drawtext(&f, font, frametext, f.mpos[0], f.mpos[1]);
         fenster_sync(&f, 30);
+
         if (f.keys[70] == 1) {
           if (fs == 0) {
             fenster_fullscreen(&f, 1);

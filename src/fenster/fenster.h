@@ -69,6 +69,8 @@ FENSTER_API void fenster_cursor(struct fenster *f, int type);
 #include "fenster_linux.h"
 #endif
 
+#include "../fenster_addons.h"
+
 #ifdef USE_FONTS
 #include "../fenster_font.h"
 #endif

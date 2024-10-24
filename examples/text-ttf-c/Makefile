@@ -1,4 +1,4 @@
-CFLAGS ?= -DUSE_FONTS -O3 -flto -lm -Wall -Wextra -std=c99
+CFLAGS ?= -mavx2 -lm -DUSE_FONTS -O3 -flto -Wall -Wextra -std=c99
 
 ifeq ($(OS),Windows_NT)
 	CC = gcc
