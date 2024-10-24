@@ -39,6 +39,7 @@ static LRESULT CALLBACK fenster_wndproc(HWND hwnd, UINT msg, WPARAM wParam,
             f->buf = new_buf;
             f->width = new_width;
             f->height = new_height;
+            f->resized = 1;
         }
     } break;
     case WM_PAINT: {
@@ -90,13 +91,22 @@ static LRESULT CALLBACK fenster_wndproc(HWND hwnd, UINT msg, WPARAM wParam,
     case WM_MOUSEMOVE:
         f->mpos[1] = HIWORD(lParam), f->mpos[0] = LOWORD(lParam);
         break;
-    case WM_KEYDOWN:
+    case WM_KEYDOWN: {
+        f->modkeys[0] = (GetKeyState(VK_CONTROL) & 0x8000) ? 1 : 0;
+        f->modkeys[1] = (GetKeyState(VK_SHIFT) & 0x8000) ? 1 : 0;
+        f->modkeys[2] = (GetKeyState(VK_MENU) & 0x8000) ? 1 : 0;
+        f->modkeys[3] = ((GetKeyState(VK_LWIN) | GetKeyState(VK_RWIN)) & 0x8000) ? 1 : 0;
+        int key = FENSTER_KEYCODES[HIWORD(lParam) & 0x1ff];
+        f->keys[key] = 1;
+        f->keysp[key] = 1;  // Set keysp on keydown
+    } break;
     case WM_KEYUP: {
         f->modkeys[0] = (GetKeyState(VK_CONTROL) & 0x8000) ? 1 : 0;
         f->modkeys[1] = (GetKeyState(VK_SHIFT) & 0x8000) ? 1 : 0;
         f->modkeys[2] = (GetKeyState(VK_MENU) & 0x8000) ? 1 : 0;
         f->modkeys[3] = ((GetKeyState(VK_LWIN) | GetKeyState(VK_RWIN)) & 0x8000) ? 1 : 0;
-        f->keys[FENSTER_KEYCODES[HIWORD(lParam) & 0x1ff]] = !((lParam >> 31) & 1);
+        int key = FENSTER_KEYCODES[HIWORD(lParam) & 0x1ff];
+        f->keys[key] = 0;  // Only update keys on keyup
     } break;
     case WM_DESTROY:
         PostQuitMessage(0);
@@ -139,6 +149,8 @@ FENSTER_API void fenster_close(struct fenster *f) {
 
 FENSTER_API int fenster_loop(struct fenster *f) {
     memset(f->mclick, 0, sizeof(f->mclick));
+    memset(f->keysp, 0, sizeof(f->keysp));
+    f->resized = 0;
     MSG msg;
     while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
         if (msg.message == WM_QUIT)

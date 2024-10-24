@@ -49,6 +49,8 @@ FENSTER_API int fenster_loop(struct fenster *f) {
   XPutImage(f->dpy, f->w, f->gc, f->img, 0, 0, 0, 0, f->width, f->height);
   XFlush(f->dpy);
   memset(f->mclick, 0, sizeof(f->mclick));
+  memset(f->keysp, 0, sizeof(f->keysp));
+  f->resized = 0;
   while (XPending(f->dpy)) {
     XNextEvent(f->dpy, &ev);
     switch (ev.type) {
@@ -56,14 +58,15 @@ case ConfigureNotify: {
     if (ev.xconfigure.width != f->width || ev.xconfigure.height != f->height) {
         uint32_t *new_buf = realloc(f->buf, ev.xconfigure.width * ev.xconfigure.height * sizeof(uint32_t));
         if (!new_buf) break;
-        
+
+        f->resized = 1;
         f->img->data = NULL;
         XDestroyImage(f->img);
-        
+
         f->buf = new_buf;
         f->width = ev.xconfigure.width;
         f->height = ev.xconfigure.height;
-        
+
         f->img = XCreateImage(f->dpy, DefaultVisual(f->dpy, 0), 24, ZPixmap, 0,
                             (char *)f->buf, f->width, f->height, 32, 0);
     }
@@ -93,21 +96,35 @@ case ConfigureNotify: {
       f->mpos[0] = ev.xmotion.x;
       f->mpos[1] = ev.xmotion.y;
       break;
-    case KeyPress:
-    case KeyRelease: {
-      int m = ev.xkey.state;
-      int k = XkbKeycodeToKeysym(f->dpy, ev.xkey.keycode, 0, 0);
-      for (unsigned int i = 0; i < 124; i += 2) {
-        if (FENSTER_KEYCODES[i] == k) {
-          f->keys[FENSTER_KEYCODES[i + 1]] = (ev.type == KeyPress);
-          break;
-        }
-      }
-      f->modkeys[0] = !!(m & ControlMask);
-      f->modkeys[1] = !!(m & ShiftMask);
-      f->modkeys[2] = !!(m & Mod1Mask);
-      f->modkeys[3] = !!(m & Mod4Mask);
-    } break;
+case KeyPress: {
+  int m = ev.xkey.state;
+  int k = XkbKeycodeToKeysym(f->dpy, ev.xkey.keycode, 0, 0);
+  for (unsigned int i = 0; i < 124; i += 2) {
+    if (FENSTER_KEYCODES[i] == k) {
+      f->keys[FENSTER_KEYCODES[i + 1]] = 1;  // Set keys
+      f->keysp[FENSTER_KEYCODES[i + 1]] = 1; // Set keysp
+      break;
+    }
+  }
+  f->modkeys[0] = !!(m & ControlMask);
+  f->modkeys[1] = !!(m & ShiftMask);
+  f->modkeys[2] = !!(m & Mod1Mask);
+  f->modkeys[3] = !!(m & Mod4Mask);
+} break;
+case KeyRelease: {
+  int m = ev.xkey.state;
+  int k = XkbKeycodeToKeysym(f->dpy, ev.xkey.keycode, 0, 0);
+  for (unsigned int i = 0; i < 124; i += 2) {
+    if (FENSTER_KEYCODES[i] == k) {
+      f->keys[FENSTER_KEYCODES[i + 1]] = 0;  // Only update keys
+      break;
+    }
+  }
+  f->modkeys[0] = !!(m & ControlMask);
+  f->modkeys[1] = !!(m & ShiftMask);
+  f->modkeys[2] = !!(m & Mod1Mask);
+  f->modkeys[3] = !!(m & Mod4Mask);
+} break;
     }
   }
   return 0;

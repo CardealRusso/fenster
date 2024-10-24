@@ -25,6 +25,7 @@ static void fenster_window_resize(id v, SEL s, id note) {
     f->buf = new_buf;
     f->width = frame.size.width;
     f->height = frame.size.height;
+    f->resized = 1;
 }
 
 static void fenster_draw_rect(id v, SEL s, CGRect r) {
@@ -108,6 +109,8 @@ FENSTER_API int fenster_loop(struct fenster *f) {
                "nextEventMatchingMask:untilDate:inMode:dequeue:", NSUInteger,
                NSUIntegerMax, id, NULL, id, NSDefaultRunLoopMode, BOOL, YES);
   memset(f->mclick, 0, sizeof(f->mclick));
+  memset(f->keysp, 0, sizeof(f->keysp));
+  f->resized = 0;
   if (!ev)
     return 0;
   NSUInteger evtype = msg(NSUInteger, ev, "type");
@@ -144,10 +147,26 @@ FENSTER_API int fenster_loop(struct fenster *f) {
     f->mpos[1] = (int)(f->height - xy.y);
     return 0;
   }
-  case 10: /*NSEventTypeKeyDown*/
-  case 11: /*NSEventTypeKeyUp:*/ {
+  case 10: /*NSEventTypeKeyDown*/ {
     NSUInteger k = msg(NSUInteger, ev, "keyCode");
-    f->keys[k < 127 ? FENSTER_KEYCODES[k] : 0] = evtype == 10;
+    if (k < 127) {
+        int key = FENSTER_KEYCODES[k];
+        f->keys[key] = 1;
+        f->keysp[key] = 1;
+    }
+    NSUInteger mod = msg(NSUInteger, ev, "modifierFlags") >> 17;
+    f->modkeys[0] = (mod & 1) ? 1 : 0;      // Shift
+    f->modkeys[1] = (mod & 2) ? 1 : 0;      // Control
+    f->modkeys[2] = (mod & 4) ? 1 : 0;      // Alt/Option
+    f->modkeys[3] = (mod & 8) ? 1 : 0;      // Command
+    return 0;
+  }
+  case 11: /*NSEventTypeKeyUp*/ {
+    NSUInteger k = msg(NSUInteger, ev, "keyCode");
+    if (k < 127) {
+      int key = FENSTER_KEYCODES[k];
+      f->keys[key] = 0;
+    }
     NSUInteger mod = msg(NSUInteger, ev, "modifierFlags") >> 17;
     f->modkeys[0] = (mod & 1) ? 1 : 0;      // Shift
     f->modkeys[1] = (mod & 2) ? 1 : 0;      // Control

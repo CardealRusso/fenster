@@ -28,11 +28,13 @@ struct fenster {
   int height;
   uint32_t *buf;
   int keys[256];      // keys are mostly ASCII, but arrows are 17..20
+  int keysp[256];     // similar to mclick but for keys
   int modkeys[4];     // ctrl, shift, alt, meta
   int mpos[2];        // mouse x, y
-  int mclick[5];      // left, right, middle, scroll up, scroll down (cleared after read)
+  int mclick[5];      // left, right, middle, scroll up, scroll down (one click)
   int mhold[3];       // left, right, middle (persistent until release)
   int64_t lastsync;   // last sync time
+  int resized;
 #if defined(__APPLE__)
   id wnd;
 #elif defined(_WIN32)
