@@ -15,15 +15,90 @@
 #include <windows.h>
 #endif
 
+#define MAX_FONT_SIZES 255
+#define MAX_CHARS 255
+
+typedef struct {
+  unsigned char* bitmap;
+  int width;
+  int height;
+  int x0;
+  int y0;
+  int advance;
+} CachedGlyph;
+
+typedef struct {
+  CachedGlyph*** cache;
+  float* sizes;
+  int num_sizes;
+} GlyphCache;
+
 typedef struct {
   stbtt_fontinfo info;
   unsigned char* buffer;
+  GlyphCache cache;
 } FensterFont;
 
 typedef struct {
   char **paths;
   size_t count;
 } FensterFontList;
+
+static void init_cache(GlyphCache* cache) {
+  cache->cache = calloc(MAX_FONT_SIZES, sizeof(CachedGlyph**));
+  cache->sizes = calloc(MAX_FONT_SIZES, sizeof(float));
+  cache->num_sizes = 0;
+}
+
+static int get_size_index(GlyphCache* cache, float size) {
+  for (int i = 0; i < cache->num_sizes; i++) {
+    if (cache->sizes[i] == size) return i;
+  }
+  
+  if (cache->num_sizes < MAX_FONT_SIZES) {
+    int idx = cache->num_sizes;
+    cache->sizes[idx] = size;
+    cache->cache[idx] = calloc(MAX_CHARS, sizeof(CachedGlyph*));
+    cache->num_sizes++;
+    return idx;
+  }
+  
+  cache->sizes[0] = size;
+  for (int i = 0; i < MAX_CHARS; i++) {
+    if (cache->cache[0][i]) {
+      free(cache->cache[0][i]->bitmap);
+      free(cache->cache[0][i]);
+      cache->cache[0][i] = NULL;
+    }
+  }
+  return 0;
+}
+
+static void free_cache(GlyphCache* cache) {
+  if (!cache->cache) return;
+  
+  for (int i = 0; i < MAX_FONT_SIZES; i++) {
+    if (cache->cache[i]) {
+      for (int j = 0; j < MAX_CHARS; j++) {
+        if (cache->cache[i][j]) {
+          free(cache->cache[i][j]->bitmap);
+          free(cache->cache[i][j]);
+        }
+      }
+      free(cache->cache[i]);
+    }
+  }
+  free(cache->cache);
+  free(cache->sizes);
+}
+
+static void add_font_path(FensterFontList *fonts, const char *path) {
+  char **new_paths = realloc(fonts->paths, (fonts->count + 1) * sizeof(char*));
+  if (new_paths && (new_paths[fonts->count] = strdup(path))) {
+    fonts->paths = new_paths;
+    fonts->count++;
+  }
+}
 
 FensterFont* fenster_loadfont(const char* filename) {
   FILE* f = fopen(filename, "rb");
@@ -44,19 +119,17 @@ FensterFont* fenster_loadfont(const char* filename) {
     fclose(f);
     return NULL;
   }
+  
+  init_cache(&font->cache);
   fclose(f);
   return font;
 }
 
 void fenster_freefont(FensterFont* font) {
-  if (font) { free(font->buffer); free(font); }
-}
-
-static void add_font_path(FensterFontList *fonts, const char *path) {
-  char **new_paths = realloc(fonts->paths, (fonts->count + 1) * sizeof(char*));
-  if (new_paths && (new_paths[fonts->count] = strdup(path))) {
-    fonts->paths = new_paths;
-    fonts->count++;
+  if (font) {
+    free_cache(&font->cache);
+    free(font->buffer);
+    free(font);
   }
 }
 
@@ -132,10 +205,10 @@ void fenster_drawtext(struct fenster* f, FensterFont* font, const char* text, in
   if (!font || !text) return;
   
   struct {
-    uint32_t color;
+    uint32_t color, background;
     float size, scale, spacing, line_spacing;
     int x, y;
-  } state = {0xFFFFFF, 20.0f, 
+  } state = {0xFFFFFF, 0x000000, 20.0f, 
              stbtt_ScaleForPixelHeight(&font->info, 20.0f), 
              1.0f, 1.0f, x, y};
   
@@ -143,8 +216,8 @@ void fenster_drawtext(struct fenster* f, FensterFont* font, const char* text, in
   stbtt_GetFontVMetrics(&font->info, &ascent, &descent, &lineGap);
   state.y += ascent * state.scale;
   
-  unsigned char *bitmap = NULL;
-  size_t bitmap_size = 0;
+  unsigned char *temp_bitmap = NULL;
+  size_t temp_bitmap_size = 0;
   
   for (const char *p = text; *p; p++) {
     if (*p == '\\' && *(p + 1)) {
@@ -154,6 +227,11 @@ void fenster_drawtext(struct fenster* f, FensterFont* font, const char* text, in
       switch (cmd) {
         case 'c':
           sscanf(p, "%x", &state.color);
+          while (*p && *p != ' ') p++;
+          if (*p == ' ') p++;
+          break;
+        case 'b':
+          sscanf(p, "%x", &state.background);
           while (*p && *p != ' ') p++;
           if (*p == ' ') p++;
           break;
@@ -184,37 +262,68 @@ void fenster_drawtext(struct fenster* f, FensterFont* font, const char* text, in
       continue;
     }
     
-    int advance, lsb, x0, y0, x1, y1;
-    stbtt_GetCodepointHMetrics(&font->info, *p, &advance, &lsb);
-    stbtt_GetCodepointBitmapBox(&font->info, *p, state.scale, state.scale, 
-                               &x0, &y0, &x1, &y1);
-    
-    size_t new_size = (x1 - x0) * (y1 - y0);
-    if (new_size > bitmap_size) {
-      bitmap = realloc(bitmap, new_size);
-      bitmap_size = new_size;
+    const unsigned char c = *p;
+    if (c >= MAX_CHARS) continue;
+    if (c == ' ') {
+      state.x += state.size * state.spacing;
+      continue;
     }
     
-    if (bitmap) {
-      stbtt_MakeCodepointBitmap(&font->info, bitmap, x1 - x0, y1 - y0,
-                               x1 - x0, state.scale, state.scale, *p);
+    int size_idx = get_size_index(&font->cache, state.size);
+    CachedGlyph* glyph = font->cache.cache[size_idx][(int)c];
+    
+    if (!glyph) {
+      int advance, lsb, x0, y0, x1, y1;
+      stbtt_GetCodepointHMetrics(&font->info, c, &advance, &lsb);
+      stbtt_GetCodepointBitmapBox(&font->info, c, state.scale, state.scale, 
+                                 &x0, &y0, &x1, &y1);
       
-      for (int i = 0; i < y1 - y0; i++) {
-        for (int j = 0; j < x1 - x0; j++) {
-          int px = state.x + x0 + j;
-          int py = state.y + y0 + i;
-          if (px >= 0 && px < f->width && py >= 0 && py < f->height && 
-              bitmap[i * (x1 - x0) + j] > 127) {
+      int width = x1 - x0;
+      int height = y1 - y0;
+      
+      if (width <= 0 || height <= 0) continue;
+      
+      size_t new_size = width * height;
+      if (new_size > temp_bitmap_size) {
+        unsigned char* new_bitmap = realloc(temp_bitmap, new_size);
+        if (!new_bitmap) continue;
+        temp_bitmap = new_bitmap;
+        temp_bitmap_size = new_size;
+      }
+      
+      stbtt_MakeCodepointBitmap(&font->info, temp_bitmap, width, height,
+                               width, state.scale, state.scale, c);
+      
+      glyph = malloc(sizeof(CachedGlyph));
+      glyph->bitmap = malloc(width * height);
+      memcpy(glyph->bitmap, temp_bitmap, width * height);
+      glyph->width = width;
+      glyph->height = height;
+      glyph->x0 = x0;
+      glyph->y0 = y0;
+      glyph->advance = advance;
+      
+      font->cache.cache[size_idx][(int)c] = glyph;
+    }
+    
+    for (int i = 0; i < glyph->height; i++) {
+      for (int j = 0; j < glyph->width; j++) {
+        int px = state.x + glyph->x0 + j;
+        int py = state.y + glyph->y0 + i;
+        if (px >= 0 && px < f->width && py >= 0 && py < f->height) {
+          if (glyph->bitmap[i * glyph->width + j] > 127) {
             fenster_pixel(f, px, py) = state.color;
+          } else {
+            fenster_pixel(f, px, py) = state.background;
           }
         }
       }
-      
-      state.x += (advance * state.scale) + state.spacing;
     }
+    
+    state.x += (glyph->advance * state.scale) + state.spacing;
   }
   
-  free(bitmap);
+  free(temp_bitmap);
 }
 
 #endif /* FENSTER_FONT_H */

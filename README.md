@@ -15,7 +15,7 @@ Code is distributed under MIT license, feel free to use it in your proprietary p
 - Window resize (fenster_resize)
 - Cursor pointer (fenster_cursor = 0 hidden, 1 normal, 2 pointer, 3 progress, 4 crosshair, 5 text)
 - Fast fill (memset for 0, avx2 for non-zero)
-- TTF text drawing with basic formatting syntax (\\\c(color) \\\s(font size) \\\n(newline)  \\\p(spacing) \\\h(line spacing))
+- TTF text drawing with basic formatting syntax (\\\c(color) \\\b(ackground color) \\\s(font size) \\\n(newline)  \\\p(spacing) \\\h(line spacing))
 - Added: fenster_fill, fenster_fullscreen, fenster_sync, fenster_resize, fenster_loadfont, fenster_(loadfont, findfontin, freefont)list, fenster_drawtext
 - Changed: array on modkeys, mouse pos
 
