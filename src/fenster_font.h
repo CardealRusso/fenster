@@ -208,7 +208,7 @@ void fenster_drawtext(struct fenster* f, FensterFont* font, const char* text, in
     uint32_t color, background;
     float size, scale, spacing, line_spacing;
     int x, y;
-  } state = {0xFFFFFF, 0x000000, 20.0f, 
+  } state = {0xFFFFFF, 0xFFFFFFFF, 20.0f, 
              stbtt_ScaleForPixelHeight(&font->info, 20.0f), 
              1.0f, 1.0f, x, y};
   
@@ -314,7 +314,9 @@ void fenster_drawtext(struct fenster* f, FensterFont* font, const char* text, in
           if (glyph->bitmap[i * glyph->width + j] > 127) {
             fenster_pixel(f, px, py) = state.color;
           } else {
-            fenster_pixel(f, px, py) = state.background;
+            if (state.background != 0xFFFFFFFF) {
+              fenster_pixel(f, px, py) = state.background;
+            }
           }
         }
       }

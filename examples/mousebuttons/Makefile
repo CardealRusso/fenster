@@ -1,4 +1,4 @@
-CFLAGS ?= -O3 -flto -lm -Wall -Wextra -std=c99
+CFLAGS ?= -ffast-math -mavx2 -O3 -flto -lm -Wall -Wextra -std=c99
 
 ifeq ($(OS),Windows_NT)
 	CC = gcc

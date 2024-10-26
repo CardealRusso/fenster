@@ -12,11 +12,12 @@ Code is distributed under MIT license, feel free to use it in your proprietary p
 - Mouse: Left, Right, Middle, Scrollup/down
 - Full Screen mode (fenster_fullscreen = 0 to windowed, 1 to fullscreen)
 - Buf size is handled internally
+- Basic 2d shapes
 - Window resize (fenster_resize)
 - Cursor pointer (fenster_cursor = 0 hidden, 1 normal, 2 pointer, 3 progress, 4 crosshair, 5 text)
-- Fast fill (memset for 0, avx2 for non-zero)
-- TTF text drawing with basic formatting syntax (\\\c(color) \\\b(ackground color) \\\s(font size) \\\n(newline)  \\\p(spacing) \\\h(line spacing))
-- Added: fenster_fill, fenster_fullscreen, fenster_sync, fenster_resize, fenster_loadfont, fenster_(loadfont, findfontin, freefont)list, fenster_drawtext
+- Sync command
+- Fast fill (memset for 0, avx2 (windows, linux) or neon (mac, arm, etc) for non-zero)
+- TTF text drawing with basic formatting syntax (\\\c(color) \\\b(ackground color (defaults to magic number 0xFFFFFFFF for transparency) \\\s(font size) \\\n(newline)  \\\p(spacing) \\\h(line spacing))
 - Changed: array on modkeys, mouse pos
 
 ```C
@@ -34,11 +35,10 @@ struct fenster {
   int resized;
 };
 
-FENSTER_API void fenster_sync(struct fenster *f, int fps);
-FENSTER_API void fenster_resize(struct fenster *f, int width, int height);
-FENSTER_API void fenster_fullscreen(struct fenster *f, int enabled);
-FENSTER_API void fenster_cursor(struct fenster *f, int type);
-static inline void fenster_fill(struct fenster *f, uint32_t color)
+void fenster_sync(struct fenster *f, int fps);
+void fenster_resize(struct fenster *f, int width, int height);
+void fenster_fullscreen(struct fenster *f, int enabled);
+void fenster_cursor(struct fenster *f, int type);
 
 #ifdef USE_FONTS
 FensterFont* fenster_loadfont(const char* filename);
@@ -50,4 +50,11 @@ int fenster_findfontinlist(FensterFontList *fonts, const char *term);
 void fenster_freefontlist(FensterFontList *fonts);
 #endif
 
+/* FENSTER_ADDONS_H */
+void fenster_drawline(struct fenster *f, int x1, int y1, int x2, int y2, uint32_t color);
+void fenster_drawcirc(line)(struct fenster *f, int x0, int y0, int radius, uint32_t color);
+void fenster_drawrec(line)(struct fenster *f, int x, int y, int width, int height, uint32_t color);
+void fenster_drawpoly(line)(struct fenster *f, int cx, int cy, int sides, int radius, float rotation, uint32_t color);
+void fenster_drawtri(line)(struct fenster *f, int x1, int y1, int x2, int y2, int x3, int y3, uint32_t color);
+void fenster_fill(struct fenster *f, uint32_t color);
 ```
