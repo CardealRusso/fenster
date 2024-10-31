@@ -2,6 +2,8 @@
 #define FENSTER_FONT_H
 
 #define STB_TRUETYPE_IMPLEMENTATION
+#define STB_RECT_PACK_IMPLEMENTATION
+#include "stb/stb_rect_pack.h"
 #include "stb/stb_truetype.h"
 #include "fenster/fenster.h"
 #include <stdio.h>
@@ -152,15 +154,18 @@ FensterFontList fenster_loadfontlist(void) {
     }
   }
   #elif defined(_WIN32)
-  char path[MAX_PATH];
-  if (GetEnvironmentVariable("SYSTEMROOT", path, MAX_PATH)) {
-    strcat(path, "\\Fonts\\*.ttf");
+  char base_path[MAX_PATH];
+  if (GetEnvironmentVariable("SYSTEMROOT", base_path, MAX_PATH)) {
+    strcat(base_path, "\\Fonts");
+    char search_path[MAX_PATH];
+    sprintf(search_path, "%s\\*.ttf", base_path);
+    
     WIN32_FIND_DATA fd;
-    HANDLE h = FindFirstFile(path, &fd);
+    HANDLE h = FindFirstFile(search_path, &fd);
     if (h != INVALID_HANDLE_VALUE) {
       char full[MAX_PATH];
       do {
-        sprintf(full, "%s\\Fonts\\%s", path, fd.cFileName);
+        sprintf(full, "%s\\%s", base_path, fd.cFileName);
         add_font_path(&fonts, full);
       } while (FindNextFile(h, &fd));
       FindClose(h);

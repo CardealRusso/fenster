@@ -39,10 +39,12 @@ static int run() {
     fenster_drawline(&f, f.width, 0, mouseX, mouseY, GREEN);
     fenster_drawline(&f, 0, f.height, mouseX, mouseY, WHITE);
     fenster_drawline(&f, f.width, f.height, mouseX, mouseY, WHITE);
-    
-    fenster_drawtext(&f, font, vsformat("Frame: %d", frame), 10, 10);
-    
-    fenster_drawtext(&f, font, vsformat("Press F for fullscreen | ESC to exit | Mouse: (%d, %d)", mouseX, mouseY), 10, f.height - 30);
+
+    vsformat("Frame: %d", frame);
+    fenster_drawtext(&f, font, vsbuff, 10, 10);
+
+    vsformat("Press F for fullscreen | ESC to exit | Mouse: (%d, %d)", mouseX, mouseY);
+    fenster_drawtext(&f, font, vsbuff, 10, f.height - 30);
     
     fenster_sync(&f, 60);
     if (f.keysp[70] == 1) fenster_fullscreen(&f, fs ^= 1);

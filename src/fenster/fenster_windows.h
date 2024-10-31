@@ -16,6 +16,7 @@ static WINDOWPLACEMENT g_wpPrev = {
 
 static HCURSOR cursors[6];
 static int cursors_initialized = 0;
+static int current_cursor_type = 1;
 
 typedef struct BINFO {
     BITMAPINFOHEADER    bmiHeader;
@@ -221,6 +222,7 @@ FENSTER_API void fenster_fullscreen(struct fenster *f, int enabled) {
 }
 
 FENSTER_API void fenster_cursor(struct fenster *f, int type) {
+    if (type == current_cursor_type) return;
     // Initialize cursors on first use
     if (!cursors_initialized) {
         cursors[0] = NULL;  // Will be used for hidden cursor
@@ -253,5 +255,6 @@ FENSTER_API void fenster_cursor(struct fenster *f, int type) {
         wc.hCursor = cursors[type];
         SetClassLongPtr(f->hwnd, GCLP_HCURSOR, (LONG_PTR)cursors[type]);
     }
+    current_cursor_type = type;
 }
 #endif /* FENSTER_WINDOWS_H */

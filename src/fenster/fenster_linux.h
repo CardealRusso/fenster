@@ -8,6 +8,7 @@ static Atom wm_state;
 static Atom wm_fullscreen;
 static Cursor cursors[6];
 static int cursors_initialized = 0;
+static int current_cursor_type = 1;
 // clang-format on
 
 FENSTER_API int fenster_open(struct fenster *f) {
@@ -174,6 +175,7 @@ FENSTER_API void fenster_fullscreen(struct fenster *f, int enabled) {
 }
 
 FENSTER_API void fenster_cursor(struct fenster *f, int type) {
+    if (type == current_cursor_type) return;
     if (!cursors_initialized) {
         cursors[0] = 0;                                           // None/hidden
         cursors[1] = XCreateFontCursor(f->dpy, XC_left_ptr);      // Normal arrow
@@ -196,7 +198,8 @@ FENSTER_API void fenster_cursor(struct fenster *f, int type) {
         // Set the cursor from our pre-created cursors
         XDefineCursor(f->dpy, f->w, cursors[type]);
     }
-    
+
+    current_cursor_type = type;
     XFlush(f->dpy);
 }
 #endif /* FENSTER_LINUX_H */

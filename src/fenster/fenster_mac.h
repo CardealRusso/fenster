@@ -13,6 +13,7 @@ extern id const NSDefaultRunLoopMode;
 extern id const NSApp;
 extern id NSCursor;
 static id cursors[6];
+static int current_cursor_type = 1;
 
 static void fenster_window_resize(id v, SEL s, id note) {
     (void)s;
@@ -223,6 +224,7 @@ FENSTER_API void fenster_fullscreen(struct fenster *f, int enabled) {
 }
 
 FENSTER_API void fenster_cursor(struct fenster *f, int type) {
+    if (type == current_cursor_type) return;
     // Initialize cursors on first use
     if (!cursors[1]) {
         // Hide cursor (NULL represents hidden cursor)
@@ -248,6 +250,7 @@ FENSTER_API void fenster_cursor(struct fenster *f, int type) {
         // Set and push the new cursor
         msg(void, cursors[type], "set");
     }
+    current_cursor_type = type;
 }
 
 #endif /* FENSTER_MAC_H */

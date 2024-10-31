@@ -15,11 +15,14 @@ static int run() {
       fenster_fill(&f, 0);
       fenster_drawtext(&f, font, "\\c0x526D82 Hello \\s32 \\c0xDDE6ED BIG \\s16 \\c0x526D82 World \\n From FensterB!", 10, 10);
 
-      fenster_drawtext(&f, font, vsformat("\\s16 \\c0xFFFFFF Press F to %s Full screen", fs == 0 ? "enter" : "leave"), 0, 200);
-      fenster_drawtext(&f, font, vsformat("\\c%d To save CPU cycles, we\\n reprint this text only\\n when window is resized.", rand()), 0, 100);
+      vsformat("\\s16 \\c0xFFFFFF Press F to %s Full screen", fs == 0 ? "enter" : "leave");
+      fenster_drawtext(&f, font, vsbuff, 0, 200);
+      vsformat("\\c%d To save CPU cycles, we\\n reprint this text only\\n when window is resized.", rand());
+      fenster_drawtext(&f, font, vsbuff, 0, 100);
     }
 
-    fenster_drawtext(&f, font, vsformat("\\b%d \\s16 Frame: %d", rand(), frame), 0, f.height-16);
+    vsformat("\\b%d \\s16 Frame: %d", rand(), frame);
+    fenster_drawtext(&f, font, vsbuff, 0, f.height-16);
     fenster_sync(&f, 30);
 
     if (f.keysp[70] == 1) fenster_fullscreen(&f, fs ^= 1);

@@ -17,15 +17,25 @@
 
 #define PI 3.14159265358979323846
 
-const char* vsformat(const char* formato, ...) {
-  static char buffer[16 * 1024];
+#define VSBUFF_SIZE (16 * 1024)
 
+char vsbuff[VSBUFF_SIZE];
+
+void vsformat(const char* fmt, ...) {
   va_list args;
-  va_start(args, formato);
-  vsnprintf(buffer, sizeof(buffer), formato, args);
+  va_start(args, fmt);
+  vsnprintf(vsbuff, VSBUFF_SIZE, fmt, args);
   va_end(args);
+}
 
-  return buffer;
+void vsformat_concat(const char* fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  size_t len = strlen(vsbuff);
+  if (len < VSBUFF_SIZE - 1) {
+    vsnprintf(vsbuff + len, VSBUFF_SIZE - len, fmt, args);
+  }
+  va_end(args);
 }
 
 static inline void vector_fill(uint32_t* buf, size_t count, uint32_t color) {
@@ -215,6 +225,17 @@ static inline void fenster_fill(struct fenster *f, uint32_t color) {
   }
   
   vector_fill(f->buf, total_pixels, color);
+}
+
+static inline int fenster_point_in_circle(int x, int y, int cx, int cy, int radius) {
+  int dx = x - cx;
+  int dy = y - cy;
+  return dx * dx + dy * dy <= radius * radius;
+}
+
+static inline int fenster_point_in_rect(int x, int y, int rect_x, int rect_y, int rect_width, int rect_height) {
+  return x >= rect_x && x <= rect_x + rect_width &&
+    y >= rect_y && y <= rect_y + rect_height;
 }
 
 #endif /* FENSTER_ADDONS_H */

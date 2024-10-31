@@ -19,14 +19,17 @@ jobs:
       with:
         submodules: 'recursive'
 
-    - name: Compile mousebuttons example
-      run: make -C examples/mousebuttons/
+    - name: Compile Examples
+      run: |
+        mkdir build/
+        make -C examples/mousebuttons/
+        make -C examples/shapes/
+        make -C examples/ttf/
+        make -C examples/cookieclicker/ DESTDIR=../../build
       shell: bash
 
-    - name: Compile shapes example
-      run: make -C examples/shapes/
-      shell: bash
-
-    - name: Compile ttf example
-      run: make -C examples/ttf/
-      shell: bash
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: examples-${{ runner.os }}
+        path: build/
